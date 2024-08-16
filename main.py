@@ -104,7 +104,7 @@ def render_verse(verse_ref: str, verse: str, width: int, height: int) -> str:
     verse_ref, verse = get_votd_verse(today)
     content = template.render(verse_ref=verse_ref, verse=verse)
 
-    hti = Html2Image(size=(width, height))
+    hti = Html2Image(size=(width, height), browser="chromium")
     filename = f"{today}.png"
     hti.screenshot(html_str=content, save_as=filename)
     return filename
