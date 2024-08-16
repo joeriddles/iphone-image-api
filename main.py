@@ -2,7 +2,6 @@ import datetime
 import io
 import json
 import random
-import time
 from functools import lru_cache
 from typing import Any
 
@@ -10,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, Response
 from html2image import Html2Image
+from html2image.browsers.chrome import ChromeHeadless
 from jinja2 import Environment, PackageLoader, select_autoescape
 from PIL import Image
 from starlette.responses import RedirectResponse
@@ -106,10 +106,12 @@ def render_verse(verse_ref: str, verse: str, width: int, height: int) -> str:
     content = template.render(verse_ref=verse_ref, verse=verse)
 
     hti = Html2Image(size=(width, height), browser="chromium")
+    hti.browser = ChromeHeadless(print_command=True)
+
     filenames = hti.screenshot(html_str=content, save_as=f"{today}.png")
     filename = filenames[0]
     print(f"Generated {filename}")
-    time.sleep(0.5)  # let image finish saving?
+
     return filenames[0]
 
 
