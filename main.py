@@ -105,9 +105,10 @@ def render_verse(verse_ref: str, verse: str, width: int, height: int) -> str:
     content = template.render(verse_ref=verse_ref, verse=verse)
 
     hti = Html2Image(size=(width, height), browser="chromium")
-    filename = f"{today}.png"
-    hti.screenshot(html_str=content, save_as=filename)
-    return filename
+    filenames = hti.screenshot(html_str=content, save_as=f"{today}.png")
+    filename = filenames[0]
+    print(f"Generated {filename}")
+    return filenames[0]
 
 
 @lru_cache
