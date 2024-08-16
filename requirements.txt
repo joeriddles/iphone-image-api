@@ -1,5 +1,7 @@
 beautifulsoup4==4.12.3
 fastapi[standard]==0.112.1
+html2image==2.0.4.3
+Jinja2==3.1.4
 lxml==5.3.0
 pillow==10.4.0
 requests==2.32.3
