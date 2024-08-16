@@ -104,6 +104,7 @@ def render_verse(verse_ref: str, verse: str, width: int, height: int) -> str:
     template = env.get_template("verse.html")
     verse_ref, verse = get_votd_verse(today)
     content = template.render(verse_ref=verse_ref, verse=verse)
+    print(f"Rendering {verse_ref}")
 
     hti = Html2Image(size=(width, height), browser="chromium")
     hti.browser = ChromeHeadless(print_command=True)
