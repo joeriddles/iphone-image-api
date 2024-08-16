@@ -2,6 +2,7 @@ import datetime
 import io
 import json
 import random
+import time
 from functools import lru_cache
 from typing import Any
 
@@ -108,6 +109,7 @@ def render_verse(verse_ref: str, verse: str, width: int, height: int) -> str:
     filenames = hti.screenshot(html_str=content, save_as=f"{today}.png")
     filename = filenames[0]
     print(f"Generated {filename}")
+    time.sleep(0.5)  # let image finish saving?
     return filenames[0]
 
 
