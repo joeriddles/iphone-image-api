@@ -1,0 +1,12 @@
+{
+  "configurations": [
+    {
+      "name": "Python Debugger: Module",
+      "type": "debugpy",
+      "console": "internalConsole",
+      "request": "launch",
+      "module": "fastapi",
+      "args": ["dev", "main.py"],
+    }
+  ]
+}
