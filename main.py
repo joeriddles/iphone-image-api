@@ -2,6 +2,7 @@ import datetime
 import io
 import json
 import random
+import re
 from functools import lru_cache
 from typing import Any
 
@@ -52,9 +53,10 @@ def votd(
     h: int = default_h,
 ):
     today = get_today()
-    image = get_votd_image(today)
-    fitted_image = fit_image(image, w, h)
-    return Response(content=fitted_image, media_type="image/png")
+    image, is_phone_image = get_votd_image(today)
+    if not is_phone_image:
+        image = fit_image(image, w, h)
+    return Response(content=image, media_type="image/png")
 
 
 @app.get("/votd/html/")
@@ -107,13 +109,27 @@ def fit_image(image: bytes, w: int, h: int) -> bytes:
     return image_bytes
 
 
+IMAGE_ID_PATTERN = re.compile(r".*static-youversionapi-com/images/base/(\d+)/.*")
+
+
 @lru_cache
-def get_votd_image(today: datetime.date) -> bytes:
-    image_url = get_votd_image_url(today)
-    response = requests.get(image_url)
+def get_votd_image(today: datetime.date) -> tuple[bytes, bool]:
+    web_image_url = get_votd_image_url(today)
+
+    if match := IMAGE_ID_PATTERN.match(web_image_url):
+        image_id = int(match.groups()[0])
+        phone_image_id = image_id + 1
+        phone_image_url = web_image_url.replace(str(image_id), str(phone_image_id))
+        phone_image_url = phone_image_url.replace("1280x1280", "3240x", 1)
+        phone_image_url = phone_image_url.replace("1280x1280", "1280x2276")
+        phone_image_response = requests.get(phone_image_url)
+        if phone_image_response.ok:
+            return phone_image_response.content, True
+
+    response = requests.get(web_image_url)
     response.raise_for_status()
     image = response.content
-    return image
+    return image, False
 
 
 @lru_cache
