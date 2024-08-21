@@ -11,8 +11,7 @@ from fastapi import FastAPI, Response
 from html2image import Html2Image
 from html2image.browsers.chrome import ChromeHeadless
 from jinja2 import Environment, PackageLoader, select_autoescape
-from PIL import Image
-from starlette.responses import RedirectResponse
+from PIL import Image, ImageFilter
 from zoneinfo import ZoneInfo
 
 IPHONE_12_PLUS_DIMENSIONS = (1170, 2532)
@@ -29,8 +28,8 @@ app = FastAPI()
 tz = ZoneInfo("America/Los_Angeles")
 
 
-@app.get("/")
-def root(
+@app.get("/color/")
+def color(
     w: int = default_w,
     h: int = default_h,
     c: str | None = None,
@@ -48,10 +47,14 @@ def root(
 
 
 @app.get("/votd/")
-def votd():
+def votd(
+    w: int = default_w,
+    h: int = default_h,
+):
     today = get_today()
-    image_url = get_votd_image_url(today)
-    return RedirectResponse(image_url)
+    image = get_votd_image(today)
+    fitted_image = fit_image(image, w, h)
+    return Response(content=fitted_image, media_type="image/png")
 
 
 @app.get("/votd/html/")
@@ -80,6 +83,40 @@ def votd_text(
     return Response(content=image, media_type="image/png")
 
 
+def fit_image(image: bytes, w: int, h: int) -> bytes:
+    fp = io.BytesIO()
+    fp.write(image)
+    fp.seek(0)
+
+    bg_dimension = max(w, h)
+
+    pil_image = Image.open(fp)
+    resized_image = pil_image.resize((bg_dimension, bg_dimension))
+    cropped_image = resized_image.crop((0, 0, w, h))
+    blurred_image = cropped_image.filter(ImageFilter.GaussianBlur(radius=100))
+
+    height_offset = round((h - pil_image.height) / 2)
+    box = (0, height_offset)
+    blurred_image.paste(pil_image, box=box)
+
+    fp = io.BytesIO()
+    blurred_image.save(fp, format="PNG")
+    fp.seek(0)
+    image_bytes = fp.read()
+
+    return image_bytes
+
+
+@lru_cache
+def get_votd_image(today: datetime.date) -> bytes:
+    image_url = get_votd_image_url(today)
+    response = requests.get(image_url)
+    response.raise_for_status()
+    image = response.content
+    return image
+
+
+@lru_cache
 def get_votd_image_url(today: datetime.date) -> str:
     next_data = get_votd_data(today)
     votds = next_data["props"]["pageProps"]["images"][0]["renditions"]
@@ -89,6 +126,7 @@ def get_votd_image_url(today: datetime.date) -> str:
     return image_url
 
 
+@lru_cache
 def get_votd_verse(today: datetime.date) -> tuple[str, str]:
     next_data = get_votd_data(today)
     verse_data = next_data["props"]["pageProps"]["verses"][0]
@@ -97,7 +135,7 @@ def get_votd_verse(today: datetime.date) -> tuple[str, str]:
     return (ref, verse)
 
 
-# @lru_cache
+@lru_cache
 def render_verse(verse_ref: str, verse: str, width: int, height: int) -> str:
     today = get_today()
 
@@ -133,7 +171,7 @@ def generate_image(
     height: int,
     color: str,
 ) -> bytes:
-    image = Image.new("RGB", (width, height), color)
+    image = Image.new("RGBA", (width, height), color)
 
     fp = io.BytesIO()
     image.save(fp, format="PNG")
